@@ -158,10 +158,16 @@
   </div>
 
   <script>
-    // Fetch configuration from server at runtime
+    // Fetch configuration from server at runtime, but do not let a missing
+    // configuration endpoint block the rest of the page from loading.
     async function loadSupabaseConfig() {
       try {
-        const response = await fetch('/api/config');
+        const response = await fetch('/api/config', { cache: 'no-store' });
+
+        if (!response.ok) {
+          throw new Error(`Config request failed with status ${response.status}`);
+        }
+
         const config = await response.json();
 
         if (config.configured) {
@@ -180,8 +186,12 @@
       }
     }
 
-    // Load config before initializing Supabase
-    loadSupabaseConfig();
+    // Load config before initializing Supabase; if the endpoint is missing,
+    // continue in local demo mode instead of failing the page.
+    loadSupabaseConfig().catch(() => {
+      window.__SUPABASE_URL__ = '';
+      window.__SUPABASE_ANON_KEY__ = '';
+    });
   </script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabase-client.js"></script>
